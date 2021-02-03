@@ -261,17 +261,49 @@ suspend fun MessageEvent.toDTO(isRawMessage: Boolean = false): CQEventDTO {
             sender = CQQQDTO(sender),
             time = currentTimeSeconds()
         )
-        is OtherClientEvent -> CQPrivateMessagePacketDTO(
-            self_id = bot.id,
-            sub_type = "self_otherClient",
-            message_id = message.internalId.toCQMessageId(bot.id, sender.id),
-            user_id = sender.id,
-            message = if (isRawMessage) rawMessage else message.toMessageChainDTO { it != UnknownMessageDTO },
-            raw_message = rawMessage.value,
-            font = 0,
-            sender = CQQQDTO(sender),
-            time = currentTimeSeconds()
-        )
+        is MessageSyncEvent -> {
+            when (this) {
+                is GroupMessageSyncEvent -> CQGroupMessagePacketDTO(
+                    self_id = bot.id,
+                    sub_type = if (sender is AnonymousMember) "self_anonymous" else "self_normal",
+                    message_id = message.internalId.toCQMessageId(bot.id, group.id),
+                    group_id = group.id,
+                    user_id = sender.id,
+                    anonymous = if (sender is AnonymousMember) CQAnonymousMemberDTO(sender as AnonymousMember) else null,
+                    message = if (isRawMessage) rawMessage else message.toMessageChainDTO { it != UnknownMessageDTO },
+                    raw_message = rawMessage.value,
+                    font = 0,
+                    sender = CQMemberDTO(sender),
+                    time = currentTimeSeconds()
+                )
+                is FriendMessageSyncEvent -> CQPrivateMessagePacketDTO(
+                    self_id = bot.id,
+                    sub_type = "self_friend",
+                    message_id = message.internalId.toCQMessageId(bot.id, sender.id),
+                    user_id = sender.id,
+                    message = if (isRawMessage) rawMessage else message.toMessageChainDTO { it != UnknownMessageDTO },
+                    raw_message = rawMessage.value,
+                    font = 0,
+                    sender = CQQQDTO(sender),
+                    time = currentTimeSeconds()
+                )
+                is GroupTempMessageSyncEvent -> CQPrivateMessagePacketDTO(
+                    self_id = bot.id,
+                    sub_type = "self_group",
+                    message_id = message.internalId.toCQMessageId(bot.id, sender.id),
+                    user_id = sender.id,
+                    message = if (isRawMessage) rawMessage else message.toMessageChainDTO { it != UnknownMessageDTO },
+                    raw_message = rawMessage.value,
+                    font = 0,
+                    sender = CQQQDTO(sender),
+                    time = currentTimeSeconds()
+                )
+                else -> {
+                    logger.debug("发生被忽略的事件: $this")
+                    CQIgnoreEventDTO(bot.id)
+                }
+            }
+        }
         else -> {
             logger.debug("发生被忽略的事件: $this")
             CQIgnoreEventDTO(bot.id)
@@ -289,7 +321,7 @@ suspend fun MessagePostSendEvent<*>.toDTO(isRawMessage: Boolean = false): CQEven
     return when (this) {
         is GroupMessagePostSendEvent -> CQGroupMessagePacketDTO(
             self_id = bot.id,
-            sub_type = "self_group",
+            sub_type = "self_normal",
             message_id = -1,
             group_id = target.id,
             user_id = bot.id,
@@ -313,7 +345,7 @@ suspend fun MessagePostSendEvent<*>.toDTO(isRawMessage: Boolean = false): CQEven
         )
         is GroupTempMessagePostSendEvent -> CQPrivateMessagePacketDTO(
             self_id = bot.id,
-            sub_type = "self_groupTemp",
+            sub_type = "self_group",
             message_id = -1,
             user_id = target.id,
             message = if (isRawMessage) rawMessage else message.toMessageChainDTO { it != UnknownMessageDTO },
