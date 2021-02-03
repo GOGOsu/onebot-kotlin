@@ -29,6 +29,7 @@ sealed class CQBotEventDTO : CQEventDTO()
 suspend fun BotEvent.toCQDTO(isRawMessage: Boolean = false): CQEventDTO {
     return when (this) {
         is MessageEvent -> toDTO(isRawMessage)
+        is MessagePostSendEvent<*> -> toDTO(isRawMessage)
         is MemberJoinEvent -> {
             when (this) {
                 is MemberJoinEvent.Active -> CQMemberJoinEventDTO(

@@ -22,10 +22,7 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import net.mamoe.mirai.contact.AnonymousMember
-import net.mamoe.mirai.event.events.FriendMessageEvent
-import net.mamoe.mirai.event.events.GroupMessageEvent
-import net.mamoe.mirai.event.events.GroupTempMessageEvent
-import net.mamoe.mirai.event.events.MessageEvent
+import net.mamoe.mirai.event.events.*
 import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.message.data.Image.Key.queryUrl
 
@@ -264,9 +261,71 @@ suspend fun MessageEvent.toDTO(isRawMessage: Boolean = false): CQEventDTO {
             sender = CQQQDTO(sender),
             time = currentTimeSeconds()
         )
+        is OtherClientEvent -> CQPrivateMessagePacketDTO(
+            self_id = bot.id,
+            sub_type = "self_otherClient",
+            message_id = message.internalId.toCQMessageId(bot.id, sender.id),
+            user_id = sender.id,
+            message = if (isRawMessage) rawMessage else message.toMessageChainDTO { it != UnknownMessageDTO },
+            raw_message = rawMessage.value,
+            font = 0,
+            sender = CQQQDTO(sender),
+            time = currentTimeSeconds()
+        )
         else -> CQIgnoreEventDTO(sender.id)
     }
 }
+
+suspend fun MessagePostSendEvent<*>.toDTO(isRawMessage: Boolean = false): CQEventDTO {
+    val rawMessage = WrappedCQMessageChainString("")
+    message.forEach { rawMessage.value += it.toCQString() }
+    if (!this.isSuccess) {
+        logger.warning("发生失败的消息发送后事件: $this")
+        return CQIgnoreEventDTO(bot.id)
+    }
+    return when (this) {
+        is GroupMessagePostSendEvent -> CQGroupMessagePacketDTO(
+            self_id = bot.id,
+            sub_type = "self_group",
+            message_id = message.internalId.toCQMessageId(bot.id, bot.id),
+            // TODO: 也许获取不到？
+            group_id = target.id,
+            user_id = bot.id,
+            anonymous = null,
+            message = if (isRawMessage) rawMessage else message.toMessageChainDTO { it != UnknownMessageDTO },
+            raw_message = rawMessage.value,
+            font = 0,
+            sender = CQMemberDTO(target.botAsMember),
+            time = currentTimeSeconds()
+        )
+        is FriendMessagePostSendEvent -> CQPrivateMessagePacketDTO(
+            self_id = bot.id,
+            sub_type = "self_friend",
+            message_id = message.internalId.toCQMessageId(bot.id, target.id),
+            // TODO: 也许获取不到？
+            user_id = target.id,
+            message = if (isRawMessage) rawMessage else message.toMessageChainDTO { it != UnknownMessageDTO },
+            raw_message = rawMessage.value,
+            font = 0,
+            sender = CQQQDTO(bot.asFriend),
+            time = currentTimeSeconds()
+        )
+        is GroupTempMessagePostSendEvent -> CQPrivateMessagePacketDTO(
+            self_id = bot.id,
+            sub_type = "self_groupTemp",
+            message_id = message.internalId.toCQMessageId(bot.id, target.id),
+            // TODO: 也许获取不到？
+            user_id = target.id,
+            message = if (isRawMessage) rawMessage else message.toMessageChainDTO { it != UnknownMessageDTO },
+            raw_message = rawMessage.value,
+            font = 0,
+            sender = CQQQDTO(target),
+            time = currentTimeSeconds()
+        )
+        else -> CQIgnoreEventDTO(bot.id)
+    }
+}
+
 
 suspend inline fun MessageChain.toMessageChainDTO(filter: (MessageDTO) -> Boolean): WrappedCQMessageChainList {
     return WrappedCQMessageChainList(mutableListOf<MessageDTO>().apply {
