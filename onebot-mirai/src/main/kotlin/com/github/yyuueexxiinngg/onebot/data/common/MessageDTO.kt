@@ -272,7 +272,10 @@ suspend fun MessageEvent.toDTO(isRawMessage: Boolean = false): CQEventDTO {
             sender = CQQQDTO(sender),
             time = currentTimeSeconds()
         )
-        else -> CQIgnoreEventDTO(sender.id)
+        else -> {
+            logger.debug("发生被忽略的事件: $this")
+            CQIgnoreEventDTO(bot.id)
+        }
     }
 }
 
@@ -319,7 +322,10 @@ suspend fun MessagePostSendEvent<*>.toDTO(isRawMessage: Boolean = false): CQEven
             sender = CQQQDTO(target),
             time = currentTimeSeconds()
         )
-        else -> CQIgnoreEventDTO(bot.id)
+        else -> {
+            logger.debug("发生被忽略的事件: $this")
+            CQIgnoreEventDTO(bot.id)
+        }
     }
 }
 

@@ -69,7 +69,10 @@ suspend fun BotEvent.toCQDTO(isRawMessage: Boolean = false): CQEventDTO {
                     user_id = member.id,
                     time = currentTimeSeconds()
                 )
-                else -> CQIgnoreEventDTO(bot.id)
+                else -> {
+                    logger.debug("发生被忽略的事件: $this")
+                    CQIgnoreEventDTO(bot.id)
+                }
             }
         }
         is BotJoinGroupEvent.Active -> CQMemberJoinEventDTO(
@@ -107,7 +110,10 @@ suspend fun BotEvent.toCQDTO(isRawMessage: Boolean = false): CQEventDTO {
                     user_id = bot.id,
                     time = currentTimeSeconds()
                 )
-                else -> CQIgnoreEventDTO(bot.id)
+                else -> {
+                    logger.debug("发生被忽略的事件: $this")
+                    CQIgnoreEventDTO(bot.id)
+                }
             }
         }
         is MemberPermissionChangeEvent ->
