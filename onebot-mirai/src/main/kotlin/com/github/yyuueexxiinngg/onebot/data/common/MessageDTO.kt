@@ -287,8 +287,7 @@ suspend fun MessagePostSendEvent<*>.toDTO(isRawMessage: Boolean = false): CQEven
         is GroupMessagePostSendEvent -> CQGroupMessagePacketDTO(
             self_id = bot.id,
             sub_type = "self_group",
-            message_id = message.internalId.toCQMessageId(bot.id, bot.id),
-            // TODO: 也许获取不到？
+            message_id = -1,
             group_id = target.id,
             user_id = bot.id,
             anonymous = null,
@@ -301,8 +300,7 @@ suspend fun MessagePostSendEvent<*>.toDTO(isRawMessage: Boolean = false): CQEven
         is FriendMessagePostSendEvent -> CQPrivateMessagePacketDTO(
             self_id = bot.id,
             sub_type = "self_friend",
-            message_id = message.internalId.toCQMessageId(bot.id, target.id),
-            // TODO: 也许获取不到？
+            message_id = -1,
             user_id = target.id,
             message = if (isRawMessage) rawMessage else message.toMessageChainDTO { it != UnknownMessageDTO },
             raw_message = rawMessage.value,
@@ -313,8 +311,7 @@ suspend fun MessagePostSendEvent<*>.toDTO(isRawMessage: Boolean = false): CQEven
         is GroupTempMessagePostSendEvent -> CQPrivateMessagePacketDTO(
             self_id = bot.id,
             sub_type = "self_groupTemp",
-            message_id = message.internalId.toCQMessageId(bot.id, target.id),
-            // TODO: 也许获取不到？
+            message_id = -1,
             user_id = target.id,
             message = if (isRawMessage) rawMessage else message.toMessageChainDTO { it != UnknownMessageDTO },
             raw_message = rawMessage.value,
