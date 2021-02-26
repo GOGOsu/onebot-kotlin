@@ -266,6 +266,7 @@ suspend fun Message.toCQString(): String {
         is MessageSource -> ""
         is QuoteReply -> ""
         is Voice -> "[CQ:record,url=${url?.escape()},file=${md5.toUHexString("")}]"
+        is MarketFace -> "[CQ:marketFace,id=$id,name=$name]"
         else -> "此处消息的转义尚未被插件支持"
     }
 }
